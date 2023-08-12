@@ -1,7 +1,7 @@
 'use strict';
 
 // const events = require('../eventPool.js');
-// // let chance = new Chance();
+
 
 // events.on('pickedUp', pickedUp);
 // events.on('inTransit', inTransit);
@@ -36,35 +36,45 @@
 // }, 3000)
 
 
-
-
+let Chance = require('chance');
+let chance = new Chance();
 const { io } = require('socket.io-client');
-const events = require('../utility.js');
+const { EVENT_NAMES } = require('../utility.js');
 
 // ws means web socket
 const client = io('ws://localhost:3000/caps');
 
-const payload = {
-
-  store: 'dots',
-  orderId: Math.ceil(Math.random() * 100),
-  customer: 'Jamal Braun',
-  address: 'Schmittfort, LA',
+function orderObj() {
+  const payload = {
+    store: chance.city(),
+    orderId: chance.integer({ min: 100, max: 199 }),
+    customer: chance.name(),
+    address: chance.address(),
+  }
+  console.log(payload);
+  client.emit(EVENT_NAMES.pickup, payload)
 }
 
+function vendorQueue() {
+  setInterval(() => {
+    orderObj();
+  }, 2000
+  )
+}
 
-client.emit(events.pickup, payload);
+// client.emit(EVENT_NAMES.pickup, payload);
 
-client.on(events.announcement, (payload) => console.log(payload.orderId)
+client.on(EVENT_NAMES.announcement, (payload) => console.log(payload.orderId)
 );
-client.on(events.pickedUp, (payload) =>
+client.on(EVENT_NAMES.pickedUp, (payload) =>
   console.log('package has been picked up by driver', payload.orderId)
 );
-client.on(events.pickedUp, (payload) =>
+client.on(EVENT_NAMES.inTransit, (payload) =>
   console.log('the package is in transit', payload.orderId)
 );
-client.on(events.delivered, (payload) =>
+client.on(EVENT_NAMES.delivered, (payload) =>
   console.log(payload.message, payload.orderId)
 );
+vendorQueue();
 
-module.exports = { client };
+module.exports = { client, orderObj };
